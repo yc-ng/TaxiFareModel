@@ -2,7 +2,7 @@
 from black import Line
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import GridSearchCV, cross_val_score
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 # model selection
 from sklearn.linear_model import Lasso, LinearRegression, Ridge
@@ -74,6 +74,22 @@ class Trainer():
                                     verbose=1, n_jobs=-3)
         # metric is negative, multiply by -1 to get positive
         return cv_scores.mean() * -1
+
+    def gridsearch_params(self, model_name: str, model, param_grid):
+        """evaluates the pipeline using a cross-validated grid search over the
+        given parameters.
+        returns the best performing model, its parameters and score"""
+        self.pipeline = self.set_pipeline(model_name, model)
+        self.gridsearch = GridSearchCV(self.pipeline, param_grid, cv=5,
+                                       scoring='neg_root_mean_squared_error',
+                                       n_jobs=-3, verbose=2)
+        self.gridsearch.fit(self.X, self.y)
+
+        # returns the best pipeline that can be reassigned to the `pipeline` attr
+        # and the best parameters (dict) and score (float)
+        return (self.gridsearch.best_estimator_,
+                self.gridsearch.best_params_,
+                self.gridsearch.best_score_ * -1)
 
     def save_model(self, model_name):
         """ Save the trained model into a model.joblib file """
